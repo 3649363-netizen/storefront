@@ -22,6 +22,8 @@ export interface SpreeMiddlewareConfig {
   defaultCountry?: string;
   /** Default locale code (default: 'en') */
   defaultLocale?: string;
+  /** Optional deployment prefix, such as /shop. */
+  basePath?: string;
   /** Locale codes for which the storefront has message bundles. */
   supportedLocales?: readonly string[];
   /** Routes to skip — prefixes matched with startsWith (default: ['/_next', '/api', '/favicon.ico']) */
@@ -71,11 +73,12 @@ function setLocaleCookies(
 
 function nextWithLocaleContext(
   request: NextRequest,
+  pathname: string,
   country: string,
   locale: string,
 ): NextResponse {
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set(REQUEST_PATHNAME_HEADER, request.nextUrl.pathname);
+  requestHeaders.set(REQUEST_PATHNAME_HEADER, pathname);
   requestHeaders.set(REQUEST_SEARCH_HEADER, request.nextUrl.search);
 
   const response = NextResponse.next({
@@ -97,6 +100,7 @@ export function createSpreeMiddleware(
   config: SpreeMiddlewareConfig = {},
 ): (request: NextRequest) => NextResponse {
   const defaultCountry = config.defaultCountry ?? "us";
+  const basePath = config.basePath?.replace(/\/$/, "") ?? "";
   const supportedLocales = config.supportedLocales ?? [];
   const configuredDefaultLocale = config.defaultLocale ?? "en";
   const defaultLocale =
@@ -117,7 +121,11 @@ export function createSpreeMiddleware(
     config.refreshTokenCookieName ?? REFRESH_TOKEN_COOKIE;
 
   return function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl;
+    const pathname = request.nextUrl.pathname.startsWith(`${basePath}/`)
+      ? request.nextUrl.pathname.slice(basePath.length)
+      : request.nextUrl.pathname === basePath
+        ? "/"
+        : request.nextUrl.pathname;
 
     // Skip static routes
     if (staticRoutes.some((route) => pathname.startsWith(route))) {
@@ -170,13 +178,13 @@ export function createSpreeMiddleware(
           `${pathname}${request.nextUrl.search}`,
         );
         const response = NextResponse.redirect(
-          new URL(loginHref, request.nextUrl),
+          new URL(`${basePath}${loginHref}`, request.nextUrl),
         );
         setLocaleCookies(response, country, locale);
         return response;
       }
 
-      return nextWithLocaleContext(request, country, locale);
+      return nextWithLocaleContext(request, pathname, country, locale);
     }
 
     // Detect country: cookie → geo headers → default
@@ -200,7 +208,7 @@ export function createSpreeMiddleware(
     const locale = cookieLocale ?? acceptedLocale ?? defaultLocale;
 
     const url = request.nextUrl.clone();
-    url.pathname = `/${country}/${locale}${pathname === "/" ? "" : pathname}`;
+    url.pathname = `${basePath}/${country}/${locale}${pathname === "/" ? "" : pathname}`;
 
     const response = NextResponse.redirect(url);
     setLocaleCookies(response, country, locale);

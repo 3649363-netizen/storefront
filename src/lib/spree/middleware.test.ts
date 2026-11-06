@@ -19,6 +19,23 @@ describe("Spree locale middleware", () => {
     );
   });
 
+  it("preserves a deployment base path while canonicalizing locale routes", () => {
+    const subpathMiddleware = createSpreeMiddleware({
+      basePath: "/shop",
+      defaultCountry: "ru",
+      defaultLocale: "ru",
+      supportedLocales: ["ru"],
+    });
+
+    const response = subpathMiddleware(
+      new NextRequest("https://store.example/shop/US/RU/products"),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://store.example/us/ru/products",
+    );
+  });
+
   it("redirects an unsupported storefront locale without dropping the path", () => {
     const response = middleware(
       new NextRequest("https://store.example/ar/it/products/coffee"),

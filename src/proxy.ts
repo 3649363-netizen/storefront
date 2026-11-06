@@ -6,6 +6,7 @@ import { isMissingStorefrontResource } from "@/lib/spree/missing-resource";
 import { getDefaultCountry, getDefaultLocale } from "@/lib/store";
 
 const spreeMiddleware = createSpreeMiddleware({
+  basePath: process.env.STOREFRONT_BASE_PATH,
   defaultCountry: getDefaultCountry(),
   defaultLocale: getDefaultLocale(),
   supportedLocales: SUPPORTED_LOCALES,
@@ -16,6 +17,7 @@ const spreeMiddleware = createSpreeMiddleware({
  * real 404 status.
  */
 const NOT_FOUND_REWRITE_PATH = "/_storefront-not-found";
+const BASE_PATH = process.env.STOREFRONT_BASE_PATH?.replace(/\/$/, "") ?? "";
 
 const STOREFRONT_PATH = /^\/([^/]+)\/([^/]+)(\/.+)$/;
 
@@ -46,10 +48,16 @@ function rewriteToNotFound(request: NextRequest): NextResponse {
   // Forward the original URL so the 404 page renders in the visitor's country
   // and language.
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set(REQUEST_PATHNAME_HEADER, request.nextUrl.pathname);
-  return NextResponse.rewrite(new URL(NOT_FOUND_REWRITE_PATH, request.url), {
-    request: { headers: requestHeaders },
-  });
+  const pathname = request.nextUrl.pathname.startsWith(`${BASE_PATH}/`)
+    ? request.nextUrl.pathname.slice(BASE_PATH.length)
+    : request.nextUrl.pathname;
+  requestHeaders.set(REQUEST_PATHNAME_HEADER, pathname);
+  return NextResponse.rewrite(
+    new URL(`${BASE_PATH}${NOT_FOUND_REWRITE_PATH}`, request.url),
+    {
+      request: { headers: requestHeaders },
+    },
+  );
 }
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
@@ -59,7 +67,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // canonical /{country}/{locale}/... at this point.
   if (response.status !== 200) return response;
 
-  const { pathname } = request.nextUrl;
+  const pathname = request.nextUrl.pathname.startsWith(`${BASE_PATH}/`)
+    ? request.nextUrl.pathname.slice(BASE_PATH.length)
+    : request.nextUrl.pathname;
   const match = pathname.match(STOREFRONT_PATH);
   if (!match) return response;
 
@@ -77,7 +87,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
       notFound.cookies.set(cookie);
     }
     notFound.cookies.set(MISSING_PAGE_COOKIE, "1", {
-      path: pathname,
+      path: `${BASE_PATH}${pathname}`,
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
@@ -90,7 +100,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // URL's actions to the 404 page.
   if (markedMissing) {
     response.cookies.set(MISSING_PAGE_COOKIE, "", {
-      path: pathname,
+      path: `${BASE_PATH}${pathname}`,
       maxAge: 0,
     });
   }

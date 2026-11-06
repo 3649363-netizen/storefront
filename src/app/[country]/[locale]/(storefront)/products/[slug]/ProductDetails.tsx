@@ -188,7 +188,7 @@ export function ProductDetails({ product, basePath }: ProductDetailsProps) {
                 </Link>
               </Button>
             ) : (
-              <div className="flex gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row">
                 <QuantityPickerField
                   quantity={quantity}
                   onQuantityChange={setQuantity}
@@ -198,6 +198,7 @@ export function ProductDetails({ product, basePath }: ProductDetailsProps) {
                 {/* Add to Cart Button */}
                 <Button
                   size="lg"
+                  className="w-full sm:w-auto"
                   onClick={handleAddToCart}
                   disabled={loading || !isPurchasable}
                 >

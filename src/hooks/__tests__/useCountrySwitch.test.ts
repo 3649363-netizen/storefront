@@ -121,6 +121,29 @@ describe("useCountrySwitch", () => {
     expect(mockAssign).toHaveBeenCalledWith("/de/de/products");
   });
 
+  it("persists Russian market and locale selection in store cookies", async () => {
+    const russianMarket = {
+      iso: "RU",
+      currency: "RUB",
+      default_locale: "ru",
+      supported_locales: ["ru", "en"],
+    } as unknown as CountryWithMarket;
+    const { result } = renderHook(() =>
+      useCountrySwitch({ currentCountry: "ru", currentLocale: "en" }),
+    );
+    const mockAssign = vi.fn();
+    vi.stubGlobal("window", {
+      location: { assign: mockAssign, hash: "", search: "" },
+    });
+
+    await act(async () => {
+      await result.current.handleCountrySelect(russianMarket, "ru");
+    });
+
+    expect(mockSetStoreCookies).toHaveBeenCalledWith("ru", "ru");
+    expect(mockAssign).toHaveBeenCalledWith("/ru/ru/products");
+  });
+
   it("rebases a login return target when switching market", async () => {
     const { rebaseAccountRedirectSearch } = await import(
       "@/lib/utils/account-redirect"

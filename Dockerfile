@@ -38,7 +38,7 @@ WORKDIR /app
 # libc6-compat keeps a few native modules happy on Alpine (musl).
 RUN apk add --no-cache libc6-compat
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .pnpmfile.cjs ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --store-dir /pnpm/store
 
@@ -54,8 +54,20 @@ ENV NODE_ENV=production
 # that fetch from Spree (categories, products, etc.).
 ARG SPREE_API_URL
 ARG SPREE_PUBLISHABLE_KEY
+ARG STOREFRONT_BASE_PATH=""
+ARG NEXT_PUBLIC_SITE_URL=""
+ARG NEXT_PUBLIC_DEFAULT_COUNTRY="us"
+ARG NEXT_PUBLIC_DEFAULT_LOCALE="en"
+ARG NEXT_PUBLIC_STORE_NAME="Spree Store"
+ARG NEXT_PUBLIC_STORE_DESCRIPTION="A modern e-commerce storefront powered by Spree Commerce and Next.js."
 ENV SPREE_API_URL=$SPREE_API_URL \
-    SPREE_PUBLISHABLE_KEY=$SPREE_PUBLISHABLE_KEY
+    SPREE_PUBLISHABLE_KEY=$SPREE_PUBLISHABLE_KEY \
+    STOREFRONT_BASE_PATH=$STOREFRONT_BASE_PATH \
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_DEFAULT_COUNTRY=$NEXT_PUBLIC_DEFAULT_COUNTRY \
+    NEXT_PUBLIC_DEFAULT_LOCALE=$NEXT_PUBLIC_DEFAULT_LOCALE \
+    NEXT_PUBLIC_STORE_NAME=$NEXT_PUBLIC_STORE_NAME \
+    NEXT_PUBLIC_STORE_DESCRIPTION=$NEXT_PUBLIC_STORE_DESCRIPTION
 
 # Optional Sentry release/source-map upload. When SENTRY_DSN is empty,
 # next.config.ts skips withSentryConfig entirely, so the build still works.

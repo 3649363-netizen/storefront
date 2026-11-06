@@ -14,8 +14,17 @@ import {
 describe("locale configuration", () => {
   it("resolves configured locales case-insensitively", () => {
     expect(resolveSupportedLocale("EN")).toBe("en");
+    expect(resolveSupportedLocale("ru")).toBe("ru");
     expect(resolveSupportedLocale("it")).toBeUndefined();
     expect(SUPPORTED_LOCALES).toContain(DEFAULT_LOCALE);
+    expect(SUPPORTED_LOCALES).toContain("ru");
+  });
+
+  it("loads the Russian storefront message bundle", async () => {
+    const { loadMessages } = await import("@/i18n/locales");
+    const messages = await loadMessages("ru");
+
+    expect(messages.common.quantity).toBe("Количество");
   });
 
   it("canonicalizes BCP 47 and Rails-style locale codes", () => {

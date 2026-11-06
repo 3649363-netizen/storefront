@@ -37,6 +37,10 @@ function spreeImagePatterns(): RemotePattern[] {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Optional path prefix for deployments sharing a host with Spree's API.
+  // Next.js inlines this value into client bundles, so it must be supplied at
+  // build time and remain empty for the default standalone storefront.
+  basePath: process.env.STOREFRONT_BASE_PATH || "",
   allowedDevOrigins: [
     "shop.lvh.me",
     "*.trycloudflare.com",
@@ -45,6 +49,7 @@ const nextConfig: NextConfig = {
     "**.spree.localhost",
   ],
   env: {
+    STOREFRONT_BASE_PATH: process.env.STOREFRONT_BASE_PATH || "",
     NEXT_PUBLIC_SENTRY_DSN: process.env.SENTRY_DSN || "",
   },
   transpilePackages: ["@spree/sdk"],
